@@ -114,5 +114,20 @@ func (bc *Blockchain) Iterator() *BlockchainIterator {
 
 // 获取下一个区块
 func (bci *BlockchainIterator) Next() *Block {
-	return nil
+	var block *Block
+
+	err := bci.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(blocksBucket))
+		encodedBlock := b.Get(bci.currentHash)
+		block = DeserializeBlock(encodedBlock)
+
+		return nil
+	})
+	if err != nil {
+		log.Panic(err)
+	}
+
+	bci.currentHash = block.PrevBlockHash
+
+	return block
 }

@@ -6,11 +6,10 @@ import (
 )
 
 func main() {
-	fmt.Println("create blockchain")
+	fmt.Println("init blockchain")
 	bc := NewBlockChain()
-	fmt.Printf("LastHash: %x\n\n", bc.tip)
-	bc.AddBlock("second blockchain")
-	fmt.Printf("LastHash: %x\n\n", bc.tip)
-	bc.AddBlock("third blockchain")
-	fmt.Printf("LastHash: %x\n\n", bc.tip)
+	defer bc.db.Close()
+
+	cli := CLI{bc}
+	cli.Run()
 }
