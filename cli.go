@@ -52,8 +52,8 @@ func (cli *CLI) Run() {
 }
 
 // 添加区块
-func (cli *CLI) addBlock(data string) {
-	cli.bc.AddBlock(data)
+func (cli *CLI) addBlock(address string) {
+	cli.bc.AddBlock([]*Transaction{NewCoinbaseTX(address, gensisCoinbaseData)})
 	fmt.Print("Success!")
 }
 
@@ -65,7 +65,7 @@ func (cli *CLI) printChain() {
 		block := bci.Next()
 
 		fmt.Printf("Prev. Hash: %x\n", block.PrevBlockHash)
-		fmt.Printf("Data: %s\n", block.Data)
+		fmt.Printf("Transactions Hash: %x\n", block.HashTransactions())
 		fmt.Printf("Hash: %x\n", block.Hash)
 		pow := NewProofOfWork(block)
 		fmt.Printf("PoW: %s\n", strconv.FormatBool(pow.Validate()))

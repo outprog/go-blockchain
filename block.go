@@ -5,34 +5,24 @@ import (
 	"crypto/sha256"
 	"encoding/gob"
 	"log"
-	"strconv"
 	"time"
 )
 
 // 区块结构
 type Block struct {
 	Timestamp     int64
-	Data          []byte
+	Transactions  []*Transaction
 	PrevBlockHash []byte
 	Hash          []byte
 	Nonce         int
 }
 
-// 区块Hash
-func (b *Block) SetHash() {
-	headerArr := [][]byte{b.PrevBlockHash, b.Data, []byte(strconv.FormatInt(b.Timestamp, 10))}
-	headers := bytes.Join(headerArr, []byte{})
-	sha := sha256.Sum256(headers)
-	b.Hash = sha[:]
-}
-
 // 创建区块
-func NewBlock(data string, prevBlockHash []byte) *Block {
+func NewBlock(transactions []*Transaction, prevBlockHash []byte) *Block {
 	b := &Block{}
 	b.Timestamp = time.Now().Unix()
-	b.Data = []byte(data)
+	b.Transactions = transactions
 	b.PrevBlockHash = prevBlockHash
-	//b.SetHash()
 	pow := NewProofOfWork(b)
 	nonce, hash := pow.Run()
 
@@ -40,6 +30,19 @@ func NewBlock(data string, prevBlockHash []byte) *Block {
 	b.Nonce = nonce
 
 	return b
+}
+
+// 计算交易数据ID Hash
+func (b *Block) HashTransactions() []byte {
+	var txHashes [][]byte
+	var txHash [32]byte
+
+	for _, tx := range b.Transactions {
+		txHashes = append(txHashes, tx.ID)
+	}
+	txHash = sha256.Sum256(bytes.Join(txHashes, []byte{}))
+
+	return txHash[:]
 }
 
 // 序列化

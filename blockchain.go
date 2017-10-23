@@ -10,6 +10,9 @@ import (
 const dbFile = "blockchain.db"
 const blocksBucket = "blocks"
 
+// 创世链信息
+const gensisCoinbaseData = "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"
+
 // 区块链结构
 type Blockchain struct {
 	tip []byte
@@ -23,7 +26,7 @@ type BlockchainIterator struct {
 }
 
 // 创建区块链
-func NewBlockChain() *Blockchain {
+func NewBlockChain(address string) *Blockchain {
 	var tip []byte
 	db, err := bolt.Open(dbFile, 0600, nil)
 	if err != nil {
@@ -34,7 +37,7 @@ func NewBlockChain() *Blockchain {
 		b := tx.Bucket([]byte(blocksBucket))
 
 		if b == nil {
-			genesis := NewBlock("first block", []byte{})
+			genesis := NewBlock([]*Transaction{NewCoinbaseTX(address, gensisCoinbaseData)}, []byte{})
 
 			b, err := tx.CreateBucket([]byte(blocksBucket))
 			if err != nil {
@@ -68,7 +71,7 @@ func NewBlockChain() *Blockchain {
 }
 
 // 添加一个区块到区块链
-func (bc *Blockchain) AddBlock(data string) {
+func (bc *Blockchain) AddBlock(transactions []*Transaction) {
 	var lastHash []byte
 
 	err := bc.db.View(func(tx *bolt.Tx) error {
@@ -81,7 +84,7 @@ func (bc *Blockchain) AddBlock(data string) {
 		log.Panic(err)
 	}
 
-	newBlock := NewBlock(data, lastHash)
+	newBlock := NewBlock(transactions, lastHash)
 
 	err = bc.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(blocksBucket))
