@@ -7,8 +7,8 @@ import (
 
 func main() {
 
-	fmt.Println("init blockchain")
-	bc := NewBlockChain("coinbase")
+	bc := NewBlockchain("coinbase")
+	fmt.Println("load blockchain")
 	defer bc.db.Close()
 
 	cli := CLI{bc}

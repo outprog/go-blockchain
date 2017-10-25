@@ -17,6 +17,24 @@ type Transaction struct {
 	Vout []TXOutput
 }
 
+// 交易输入结构
+type TXInput struct {
+	Txid      []byte
+	Vout      int
+	ScriptSig string
+}
+
+// 交易输出结构
+type TXOutput struct {
+	Value        int
+	ScriptPubKey string
+}
+
+// 判断是否 coinbase 交易
+func (tx *Transaction) IsCoinbase() bool {
+	return len(tx.Vin) == 1 && len(tx.Vin[0].Txid) == 0 && tx.Vin[0].Vout == -1
+}
+
 // 设置交易 ID
 func (tx *Transaction) SetID() {
 	var encoded bytes.Buffer
@@ -31,19 +49,6 @@ func (tx *Transaction) SetID() {
 	tx.ID = hash[:]
 }
 
-// 交易输出结构
-type TXOutput struct {
-	Value        int
-	ScriptPubKey string
-}
-
-// 交易输入结构
-type TXInput struct {
-	Txid      []byte
-	Vout      int
-	ScriptSig string
-}
-
 // 创建 CoinBase 交易
 func NewCoinbaseTX(to, data string) *Transaction {
 	if data == "" {
@@ -56,4 +61,12 @@ func NewCoinbaseTX(to, data string) *Transaction {
 	tx.SetID()
 
 	return &tx
+}
+
+// 输入输出锁定判断
+func (in *TXInput) CanUnlockOutputWith(unlockingData string) bool {
+	return in.ScriptSig == unlockingData
+}
+func (out *TXOutput) CanBeUnlockedWith(unlockingData string) bool {
+	return out.ScriptPubKey == unlockingData
 }
