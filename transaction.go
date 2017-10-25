@@ -18,7 +18,7 @@ type Transaction struct {
 }
 
 // 设置交易 ID
-func (tx Transaction) SetID() {
+func (tx *Transaction) SetID() {
 	var encoded bytes.Buffer
 	var hash [32]byte
 

@@ -17,12 +17,19 @@ type CLI struct {
 func (cli *CLI) Run() {
 	cli.validateArgs()
 
+	createBlockchainCmd := flag.NewFlagSet("createblockchain", flag.ExitOnError)
 	addBlockCmd := flag.NewFlagSet("addblock", flag.ExitOnError)
 	printChainCmd := flag.NewFlagSet("printchain", flag.ExitOnError)
 
-	addBlockData := addBlockCmd.String("data", "", "Block data")
+	createBlockchainData := createBlockchainCmd.String("address", "", "Transaction adress")
+	addBlockData := addBlockCmd.String("address", "", "Transaction address")
 
 	switch os.Args[1] {
+	case "createblockchain":
+		err := createBlockchainCmd.Parse(os.Args[2:])
+		if err != nil {
+			log.Panic(err)
+		}
 	case "addblock":
 		err := addBlockCmd.Parse(os.Args[2:])
 		if err != nil {
@@ -38,6 +45,13 @@ func (cli *CLI) Run() {
 		os.Exit(1)
 	}
 
+	if createBlockchainCmd.Parsed() {
+		if *createBlockchainData == "" {
+			createBlockchainCmd.Usage()
+			os.Exit(1)
+		}
+		cli.createBlockchain(*createBlockchainData)
+	}
 	if addBlockCmd.Parsed() {
 		if *addBlockData == "" {
 			addBlockCmd.Usage()
@@ -51,9 +65,15 @@ func (cli *CLI) Run() {
 	}
 }
 
+// 创建一个新的区块链
+func (cli *CLI) createBlockchain(address string) {
+	cli.bc.AddBlock([]*Transaction{NewCoinbaseTX(address, gensisCoinbaseData)})
+	fmt.Print("Success!")
+}
+
 // 添加区块
 func (cli *CLI) addBlock(address string) {
-	cli.bc.AddBlock([]*Transaction{NewCoinbaseTX(address, gensisCoinbaseData)})
+	cli.bc.AddBlock([]*Transaction{NewCoinbaseTX(address, "")})
 	fmt.Print("Success!")
 }
 
@@ -80,7 +100,8 @@ func (cli *CLI) printChain() {
 // 打印使用方法
 func (cli *CLI) printUsage() {
 	fmt.Println("Usage: ")
-	fmt.Println("  addblock -data BLOCK_DATA // add a block to the blockchain")
+	fmt.Println("  createblockchain -address TRANSACTION ADDRESS // add an address to the blockchain")
+	fmt.Println("  addblock -address TRANSACTION ADDRESS // add an address to the blockchain")
 	fmt.Println("  printchain // print all the blocks of the blockchain")
 }
 
