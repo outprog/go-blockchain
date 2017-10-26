@@ -21,8 +21,14 @@ func (cli *CLI) Run() {
 	getBalanceCmd := flag.NewFlagSet("getbalance", flag.ExitOnError)
 	printChainCmd := flag.NewFlagSet("printchain", flag.ExitOnError)
 
+	sendCmd := flag.NewFlagSet("send", flag.ExitOnError)
+
 	addBlockData := addBlockCmd.String("address", "", "Transaction address")
 	getBalanceData := getBalanceCmd.String("address", "", "Transaction address")
+
+	sendFromData := sendCmd.String("from", "", "From Address")
+	sendToData := sendCmd.String("to", "", "To Address")
+	sendAmountData := sendCmd.Int("amount", 0, "Amount Of Coins")
 
 	switch os.Args[1] {
 	case "addblock":
@@ -37,6 +43,11 @@ func (cli *CLI) Run() {
 		}
 	case "printchain":
 		err := printChainCmd.Parse(os.Args[2:])
+		if err != nil {
+			log.Panic(err)
+		}
+	case "send":
+		err := sendCmd.Parse(os.Args[2:])
 		if err != nil {
 			log.Panic(err)
 		}
@@ -62,6 +73,14 @@ func (cli *CLI) Run() {
 
 	if printChainCmd.Parsed() {
 		cli.printChain()
+	}
+
+	if sendCmd.Parsed() {
+		if *sendFromData == "" || *sendToData == "" || *sendAmountData <= 0 {
+			sendCmd.Usage()
+			os.Exit(1)
+		}
+		cli.send(*sendFromData, *sendToData, *sendAmountData)
 	}
 }
 
@@ -108,6 +127,14 @@ func (cli *CLI) printUsage() {
 	fmt.Println("  addblock -address TRANSACTION ADDRESS // add an address to the blockchain")
 	fmt.Println("  getbalance -address TRANSACTION ADDRESS // add an address to the blockchain")
 	fmt.Println("  printchain // print all the blocks of the blockchain")
+	fmt.Println("  send -from FROM -to TO -amount AMOUNT // Send AMOUNT of coins from FROM address to TO")
+}
+
+// 发送比特币
+func (cli *CLI) send(from, to string, amount int) {
+	tx := NewUTXOTransaction(from, to, amount, cli.bc)
+	cli.bc.AddBlock([]*Transaction{tx})
+	fmt.Println("Success!")
 }
 
 // 无效命令
