@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"os"
 )
 
 const subsidy = 10
@@ -80,7 +81,8 @@ func NewUTXOTransaction(from, to string, amount int, bc *Blockchain) *Transactio
 	acc, validOutputs := bc.FindSpendableOutputs(from, amount)
 
 	if acc < amount {
-		log.Panic("ERROR: Not enough funds")
+		fmt.Println("ERROR: Not enough funds")
+		os.Exit(1)
 	}
 
 	// 创建 inputs list
