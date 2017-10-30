@@ -21,6 +21,7 @@ func (cli *CLI) Run() {
 	getBalanceCmd := flag.NewFlagSet("getbalance", flag.ExitOnError)
 	printChainCmd := flag.NewFlagSet("printchain", flag.ExitOnError)
 
+	createWalletCmd := flag.NewFlagSet("createwallet", flag.ExitOnError)
 	sendCmd := flag.NewFlagSet("send", flag.ExitOnError)
 
 	addBlockData := addBlockCmd.String("address", "", "Transaction address")
@@ -43,6 +44,11 @@ func (cli *CLI) Run() {
 		}
 	case "printchain":
 		err := printChainCmd.Parse(os.Args[2:])
+		if err != nil {
+			log.Panic(err)
+		}
+	case "createwallet":
+		err := createWalletCmd.Parse(os.Args[2:])
 		if err != nil {
 			log.Panic(err)
 		}
@@ -75,6 +81,9 @@ func (cli *CLI) Run() {
 		cli.printChain()
 	}
 
+	if createWalletCmd.Parsed() {
+		cli.createWallet()
+	}
 	if sendCmd.Parsed() {
 		if *sendFromData == "" || *sendToData == "" || *sendAmountData <= 0 {
 			sendCmd.Usage()
@@ -93,7 +102,8 @@ func (cli *CLI) addBlock(address string) {
 // 获得余额
 func (cli *CLI) getBalance(address string) {
 	balance := 0
-	UTXOs := cli.bc.FindUTXO(address)
+	pubKeyHash := AddressToHash(address)
+	UTXOs := cli.bc.FindUTXO(pubKeyHash)
 
 	for _, out := range UTXOs {
 		balance += out.Value
@@ -109,10 +119,15 @@ func (cli *CLI) printChain() {
 		block := bci.Next()
 
 		fmt.Printf("Prev. Hash: %x\n", block.PrevBlockHash)
-		fmt.Printf("Transactions Hash: %s\n", block.Transactions)
+		//fmt.Printf("Transactions Hash: %s\n", block.Transactions)
 		fmt.Printf("Hash: %x\n", block.Hash)
 		pow := NewProofOfWork(block)
 		fmt.Printf("PoW: %s\n", strconv.FormatBool(pow.Validate()))
+		fmt.Println("tx: ")
+		for _, tx := range block.Transactions {
+			fmt.Println(tx)
+			fmt.Println()
+		}
 		fmt.Println()
 
 		if len(block.PrevBlockHash) == 0 {
@@ -128,6 +143,12 @@ func (cli *CLI) printUsage() {
 	fmt.Println("  getbalance -address TRANSACTION ADDRESS // add an address to the blockchain")
 	fmt.Println("  printchain // print all the blocks of the blockchain")
 	fmt.Println("  send -from FROM -to TO -amount AMOUNT // Send AMOUNT of coins from FROM address to TO")
+}
+
+// 创建钱包
+func (cli *CLI) createWallet() {
+	wallet := NewWallet()
+	fmt.Printf("Your new address: %s\n", wallet.GetAddress())
 }
 
 // 发送比特币

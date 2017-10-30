@@ -19,19 +19,6 @@ type Transaction struct {
 	Vout []TXOutput
 }
 
-// 交易输入结构
-type TXInput struct {
-	Txid      []byte
-	Vout      int
-	ScriptSig string
-}
-
-// 交易输出结构
-type TXOutput struct {
-	Value        int
-	ScriptPubKey string
-}
-
 // 判断是否 coinbase 交易
 func (tx *Transaction) IsCoinbase() bool {
 	return len(tx.Vin) == 1 && len(tx.Vin[0].Txid) == 0 && tx.Vin[0].Vout == -1
@@ -57,20 +44,12 @@ func NewCoinbaseTX(to, data string) *Transaction {
 		data = fmt.Sprintf("Reward to '%s'", to)
 	}
 
-	txin := TXInput{[]byte{}, -1, data}
-	txout := TXOutput{subsidy, to}
+	txin := TXInput{[]byte{}, -1, nil, []byte(data)}
+	txout := NewTXOutput(subsidy, to)
 	tx := Transaction{nil, []TXInput{txin}, []TXOutput{txout}}
 	tx.SetID()
 
 	return &tx
-}
-
-// 输入输出锁定判断
-func (in *TXInput) CanUnlockOutputWith(unlockingData string) bool {
-	return in.ScriptSig == unlockingData
-}
-func (out *TXOutput) CanBeUnlockedWith(unlockingData string) bool {
-	return out.ScriptPubKey == unlockingData
 }
 
 // 创建交易
@@ -78,7 +57,7 @@ func NewUTXOTransaction(from, to string, amount int, bc *Blockchain) *Transactio
 	var inputs []TXInput
 	var outputs []TXOutput
 
-	acc, validOutputs := bc.FindSpendableOutputs(from, amount)
+	acc, validOutputs := bc.FindSpendableOutputs(AddressToHash(from), amount)
 
 	if acc < amount {
 		fmt.Println("ERROR: Not enough funds")
@@ -93,19 +72,57 @@ func NewUTXOTransaction(from, to string, amount int, bc *Blockchain) *Transactio
 		}
 
 		for _, out := range outs {
-			input := TXInput{txID, out, from}
+			//			input := TXInput{txID, out, nil, AddressToHash(from)}
 			inputs = append(inputs, input)
 		}
 	}
 
 	// 创建 outputs list
-	outputs = append(outputs, TXOutput{amount, to})
+	outputs = append(outputs, NewTXOutput(amount, to))
 	if acc > amount {
-		outputs = append(outputs, TXOutput{acc - amount, from})
+		outputs = append(outputs, NewTXOutput(acc-amount, from))
 	}
 
 	tx := Transaction{nil, inputs, outputs}
 	tx.SetID()
 
 	return &tx
+}
+
+//////////////////////////////////////////////////
+// 交易的输入输出
+
+// 交易输入结构
+type TXInput struct {
+	Txid      []byte
+	Vout      int
+	Signature []byte
+	PubKey    []byte
+}
+
+// 交易输出结构
+type TXOutput struct {
+	Value      int
+	PubKeyHash []byte
+}
+
+func (in *TXInput) UseKey(pubKeyHash []byte) bool {
+	lockingHash := HashPubKey(in.PubKey)
+
+	return bytes.Compare(lockingHash, pubKeyHash) == 0
+}
+
+func (out *TXOutput) Lock(address string) {
+	out.PubKeyHash = AddressToHash(address)
+}
+
+func (out *TXOutput) IsLockedWithKey(pubKeyHash []byte) bool {
+	return bytes.Compare(out.PubKeyHash, pubKeyHash) == 0
+}
+
+func NewTXOutput(value int, address string) TXOutput {
+	txo := TXOutput{value, nil}
+	txo.Lock(address)
+
+	return txo
 }
