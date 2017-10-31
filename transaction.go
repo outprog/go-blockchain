@@ -57,6 +57,7 @@ func NewUTXOTransaction(from, to string, amount int, bc *Blockchain) *Transactio
 	var inputs []TXInput
 	var outputs []TXOutput
 
+	wallets := NewWallets()
 	acc, validOutputs := bc.FindSpendableOutputs(AddressToHash(from), amount)
 
 	if acc < amount {
@@ -72,7 +73,7 @@ func NewUTXOTransaction(from, to string, amount int, bc *Blockchain) *Transactio
 		}
 
 		for _, out := range outs {
-			//			input := TXInput{txID, out, nil, AddressToHash(from)}
+			input := TXInput{txID, out, nil, wallets.GetWallet(from).PublicKey}
 			inputs = append(inputs, input)
 		}
 	}

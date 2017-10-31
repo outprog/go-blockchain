@@ -143,12 +143,17 @@ func (cli *CLI) printUsage() {
 	fmt.Println("  getbalance -address TRANSACTION ADDRESS // add an address to the blockchain")
 	fmt.Println("  printchain // print all the blocks of the blockchain")
 	fmt.Println("  send -from FROM -to TO -amount AMOUNT // Send AMOUNT of coins from FROM address to TO")
+	fmt.Println("  createwallet // create wallet and save in disk")
 }
 
 // 创建钱包
 func (cli *CLI) createWallet() {
-	wallet := NewWallet()
-	fmt.Printf("Your new address: %s\n", wallet.GetAddress())
+	wallets := NewWallets()
+
+	address := wallets.CreateWallet()
+	wallets.SaveToFile()
+
+	fmt.Printf("Your new address: %s\n", address)
 }
 
 // 发送比特币

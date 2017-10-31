@@ -105,7 +105,7 @@ func checksum(payload []byte) []byte {
 // 地址转换为 pubKeyHash
 func AddressToHash(address string) []byte {
 	pubKeyHash := Base58Decode([]byte(address))
-	pubKeyHash = pubKeyHash[1 : len(pubKeyHash)-4]
+	pubKeyHash = pubKeyHash[0 : len(pubKeyHash)-4]
 
 	return pubKeyHash
 }

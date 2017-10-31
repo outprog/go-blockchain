@@ -1,4 +1,5 @@
 go-blockchain
 blockchain.db
+wallet.dat
 .DS_Store
 *.swp
