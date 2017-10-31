@@ -5,11 +5,14 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/gob"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
+
+	"golang.org/x/crypto/ripemd160"
 )
 
 const version = byte(0x00)
@@ -52,6 +55,46 @@ func (w Wallet) GetAddress() []byte {
 	return address
 }
 
+// 验证地址
+func ValidateAddress(address string) bool {
+	decode := Base58Decode([]byte(address))
+	pubKeyHash := decode[0 : len(decode)-addressChecksumLen]
+	actualChecksum := decode[len(decode)-addressChecksumLen:]
+	targetChecksum := checksum(append([]byte{version}, pubKeyHash...))
+
+	return bytes.Compare(actualChecksum, targetChecksum) == 0
+}
+
+// 计算 Hash
+func HashPubKey(pubKey []byte) []byte {
+	publicSHA256 := sha256.Sum256(pubKey)
+
+	RIPEMD160Hasher := ripemd160.New()
+	_, err := RIPEMD160Hasher.Write(publicSHA256[:])
+	if err != nil {
+		log.Panic(err)
+	}
+	publicRIPEMD160 := RIPEMD160Hasher.Sum(nil)
+
+	return publicRIPEMD160
+}
+
+// 计算校验和
+func checksum(payload []byte) []byte {
+	firstSHA := sha256.Sum256(payload)
+	secondSHA := sha256.Sum256(firstSHA[:])
+
+	return secondSHA[:addressChecksumLen]
+}
+
+// 地址转换为 pubKeyHash
+func AddressToHash(address string) []byte {
+	pubKeyHash := Base58Decode([]byte(address))
+	pubKeyHash = pubKeyHash[0 : len(pubKeyHash)-addressChecksumLen]
+
+	return pubKeyHash
+}
+
 ////////////////////////////////////////
 // 钱包存储至 wallet.dat 文件
 const walletFile = "wallet.dat"
@@ -85,6 +128,17 @@ func (ws *Wallets) CreateWallet() string {
 // 通过地址获取钱包
 func (ws *Wallets) GetWallet(address string) Wallet {
 	return *ws.Wallets[address]
+}
+
+// 获得所有地址
+func (ws *Wallets) GetAddress() []string {
+	var addresses []string
+
+	for address := range ws.Wallets {
+		addresses = append(addresses, address)
+	}
+
+	return addresses
 }
 
 // 从文件读取钱包

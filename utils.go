@@ -2,12 +2,9 @@ package main
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"encoding/binary"
 	"log"
 	"math/big"
-
-	"golang.org/x/crypto/ripemd160"
 )
 
 func IntToHex(num int64) []byte {
@@ -78,34 +75,4 @@ func Base58Decode(input []byte) []byte {
 	decoded = append(bytes.Repeat([]byte{byte(0x00)}, zeroBytes), decoded...)
 
 	return decoded
-}
-
-// 计算 Hash
-func HashPubKey(pubKey []byte) []byte {
-	publicSHA256 := sha256.Sum256(pubKey)
-
-	RIPEMD160Hasher := ripemd160.New()
-	_, err := RIPEMD160Hasher.Write(publicSHA256[:])
-	if err != nil {
-		log.Panic(err)
-	}
-	publicRIPEMD160 := RIPEMD160Hasher.Sum(nil)
-
-	return publicRIPEMD160
-}
-
-// 计算校验和
-func checksum(payload []byte) []byte {
-	firstSHA := sha256.Sum256(payload)
-	secondSHA := sha256.Sum256(firstSHA[:])
-
-	return secondSHA[:addressChecksumLen]
-}
-
-// 地址转换为 pubKeyHash
-func AddressToHash(address string) []byte {
-	pubKeyHash := Base58Decode([]byte(address))
-	pubKeyHash = pubKeyHash[0 : len(pubKeyHash)-4]
-
-	return pubKeyHash
 }
