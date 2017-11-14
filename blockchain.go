@@ -1,8 +1,12 @@
 package main
 
 import (
+	"bytes"
+	"crypto/ecdsa"
 	"encoding/hex"
+	"errors"
 	"log"
+	"os"
 
 	"github.com/boltdb/bolt"
 )
@@ -24,6 +28,57 @@ type Blockchain struct {
 type BlockchainIterator struct {
 	currentHash []byte
 	db          *bolt.DB
+}
+
+// 获取指定 ID 的交易
+func (bc *Blockchain) FindTransaction(ID []byte) (Transaction, error) {
+	bci := bc.Iterator()
+
+	for {
+		block := bci.Next()
+
+		for _, tx := range block.Transactions {
+			if bytes.Compare(tx.ID, ID) == 0 {
+				return *tx, nil
+			}
+		}
+
+		if len(block.PrevBlockHash) == 0 {
+			break
+		}
+	}
+
+	return Transaction{}, errors.New("Transaction is not found")
+}
+
+// 交易签名
+func (bc *Blockchain) SignTransaction(tx *Transaction, privKey ecdsa.PrivateKey) {
+	prevTXs := make(map[string]Transaction)
+
+	for _, vin := range tx.Vin {
+		prevTX, err := bc.FindTransaction(vin.Txid)
+		if err != nil {
+			log.Panic(err)
+		}
+		prevTXs[hex.EncodeToString(prevTX.ID)] = prevTX
+	}
+
+	tx.Sign(privKey, prevTXs)
+}
+
+// 交易验证
+func (bc *Blockchain) VerifyTransaction(tx *Transaction) bool {
+	prevTXs := make(map[string]Transaction)
+
+	for _, vin := range tx.Vin {
+		prevTX, err := bc.FindTransaction(vin.Txid)
+		if err != nil {
+			log.Panic(err)
+		}
+		prevTXs[hex.EncodeToString(prevTX.ID)] = prevTX
+	}
+
+	return tx.Verify(prevTXs)
 }
 
 // 获取未消费的交易
@@ -162,6 +217,13 @@ func NewBlockchain(address string) *Blockchain {
 // 添加区块到区块链
 func (bc *Blockchain) AddBlock(transactions []*Transaction) {
 	var lastHash []byte
+
+	for _, tx := range transactions {
+		if bc.VerifyTransaction(tx) != true {
+			log.Println("ERROR: Invalid tranaction")
+			os.Exit(1)
+		}
+	}
 
 	err := bc.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(blocksBucket))

@@ -7,7 +7,7 @@ import (
 
 func main() {
 
-	bc := NewBlockchain("coinbase")
+	bc := NewBlockchain("15XjNnP5F5JxaqKuExyzmKaW8UqBePxodN")
 	fmt.Println("load blockchain")
 	defer bc.db.Close()
 
